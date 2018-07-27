@@ -1,0 +1,9 @@
+# compiled python files
+*.pyc
+
+# python and required libraries
+fulfillment/bin
+fulfillment/lib
+fulfillment/include
+fulfillment/.Python
+fulfillment/pip-selfcheck.json

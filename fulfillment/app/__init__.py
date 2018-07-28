@@ -1,5 +1,5 @@
 from flask import Flask
-from .dialogflow import DialogFlow
+from app.dialogflow import DialogFlow
 from .refer_mock import ReferMock
 
 app = Flask(__name__)

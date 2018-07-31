@@ -37,7 +37,7 @@ def get_available_appointment_for_pantry(df_request, df_response):
 	if res == None:
 		df_response.set_fulfillment_text('Sorry, there are no upcoming appointments available for {0}'.format(pantry))
 	else:
-		df_response.set_fulfillment_text('The soonest appointment I have is {0}. Is this okay? (yes, no)'.format(res['date_and_time'].strftime('%B %d at %-I:%M %p')))
+		df_response.set_fulfillment_text('The soonest appointment I have is {0}. Is this okay? (yes, no)'.format(res['date_and_time'].strftime('%B %d at %I:%M %p')))
 		context_parameters = {'pantry': res['pantry'], 'dateAndTime': res['date_and_time'].isoformat()}
 		df_response.add_output_context('wh-appointment', 1, context_parameters)
 

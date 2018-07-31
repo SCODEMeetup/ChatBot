@@ -9,7 +9,7 @@ class ReferMock:
 		self._database.row_factory = sqlite3.Row
 
 	def search_for_user(self, ssn, birthdate):
-		sql = "SELECT firstName, lastName, address, clientId FROM User WHERE ssn=? AND birthdate=?"
+		sql = "SELECT firstName, lastName, address, id FROM User WHERE ssn=? AND birthdate=?"
 		result = self._query_db(sql, [ssn, birthdate], one=True)
 		return result
 

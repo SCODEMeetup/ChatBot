@@ -24,6 +24,8 @@ class DialogFlow:
 			return "", 401
 
 		json_data = request.get_json(silent=True, force=True)
+		#remove
+		print(json_data)
 		intent = json_data['queryResult']['intent']['displayName']
 
 		try:

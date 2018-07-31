@@ -81,7 +81,7 @@ class Context:
 	def __init__(self, json):
 		self._name = json['name']
 		self._display_name = self._name.split('contexts/')[1]
-		self._lifespan_count = json['lifespanCount']
+		self._lifespan_count = json.get('lifespanCount', 0)
 		self._parameters = json.get('parameters', {})
 
 	@property

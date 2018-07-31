@@ -8,7 +8,7 @@ class DialogFlowResponse:
 		self._response_dict['fulfillmentText'] = text
 
 	def add_output_context(self, name, lifespan, parameters):
-		context = {'name': self._session + '/contexts' + name,
+		context = {'name': self._session + '/contexts/' + name,
 				'lifespanCount': lifespan,
 				'parameters': parameters}
 		self._response_dict['outputContexts'].append(context)

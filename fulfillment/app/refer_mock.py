@@ -8,10 +8,27 @@ class ReferMock:
 		self._database = sqlite3.connect(db_file);
 		self._database.row_factory = sqlite3.Row
 
+	def get_all_appointments(self):
+		sql = "SELECT User.firstName, User.lastName, Pantry.name, Appointment.dateAndTime FROM Appointment INNER JOIN User ON Appointment.userId=User.Id INNER JOIN Pantry ON Appointment.pantryId=Pantry.Id"
+		return self._query_db(sql)
+
+	def get_all_users(self):
+		sql = "SELECT firstName, lastName, ssn, birthdate, address FROM User"
+		return self._query_db(sql)
+
 	def search_for_user(self, ssn, birthdate):
 		sql = "SELECT firstName, lastName, address, id FROM User WHERE ssn=? AND birthdate=?"
-		result = self._query_db(sql, [ssn, birthdate], one=True)
-		return result
+		return self._query_db(sql, [ssn, birthdate], one=True)
+
+	def update_name(self, first_name, last_name, user_id):
+		print(first_name)
+		print(last_name)
+		sql = "UPDATE User SET firstName=?, lastName=? WHERE id=?"
+		self._insert_update_db(sql, [first_name, last_name, user_id])
+
+	def update_address(self, address, user_id):
+		sql = "UPDATE User SET address=? WHERE id=?"
+		self._insert_update_db(sql, [address, user_id])
 
 	def get_available_appointment_for_pantry(self, pantry):
 		availableTimeHour = randint(10, 17)
@@ -19,8 +36,24 @@ class ReferMock:
 		appointmentTime = tomorrow.replace(hour=availableTimeHour, minute=0, second=0)
 		return {'pantry': pantry, 'date_and_time': appointmentTime}
 
+	def book_appointment(self, user_id, pantry, appointment_date_time):
+		sql = "INSERT INTO Appointment (userId, pantryId, dateAndTime) VALUES (?, (SELECT id FROM Pantry WHERE Name=?), ?)"
+		try:
+			self._insert_update_db(sql, [user_id, pantry, appointment_date_time]);
+		except sqlite3.Error:
+			return None
+		
+		sql = "SELECT notes, address FROM Pantry WHERE name=?"
+		return self._query_db(sql, [pantry], one=True)
 
 	def _query_db(self, query, args=(), one=False):
 		cursor = self._database.execute(query, args)
 		results = cursor.fetchall()
+		cursor.close()
 		return (results[0] if results else None) if one else results
+
+	def _insert_update_db(self, query, args=()):
+		cursor = self._database.cursor()
+		cursor.execute(query, args)
+		self._database.commit()
+		cursor.close()

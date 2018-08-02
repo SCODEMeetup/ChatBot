@@ -2,10 +2,37 @@ from app import app, dialogflow, refer_mock
 from flask import request, jsonify
 
 import dateutil.parser
+import json
 
 @app.route('/')
 def index():
 	return "It Works"
+
+@app.route('/appointments')
+def appointments():
+	appointments = refer_mock.get_all_appointments()
+	appointments_json = []
+	for row in appointments:
+		appointments_json.append({
+				'firstName': row['firstName'],
+				'lastName': row['lastName'],
+				'pantry': row['name'],
+				'dateAndTime': row['dateAndTime']})
+	return jsonify(appointments_json)
+
+@app.route('/users')
+def users():
+	users = refer_mock.get_all_users()
+	users_json = []
+	for row in users:
+		users_json.append({
+			'firstName': row['firstName'],
+			'lastName': row['lastName'],
+			'ssn': row['ssn'],
+			'birthDate': row['birthdate'],
+			'address': row['address']
+			})
+	return jsonify(users_json)
 
 @dialogflow.intent('get-ssn-dob-service')
 def lookup_user(df_request, df_response):
@@ -28,6 +55,28 @@ def lookup_user(df_request, df_response):
 			Is that you?'.format(res['firstName'], res['lastName'], res['address']))
 		df_response.add_output_context('wh-client', 10, {'userId': res['id']})
 
+@dialogflow.intent('name-question change')
+def change_client_name(df_request, df_response):
+	first_name = df_request.query_result.parameters.get('client').get('firstname')
+	last_name = df_request.query_result.parameters.get('client').get('lastname')
+	print(first_name)
+	print(last_name)
+	user_id = df_request.query_result.output_contexts.get('wh-client').parameters.get('userId')
+
+	refer_mock.update_name(first_name, last_name, user_id)
+
+@dialogflow.intent('address-question change')
+def change_client_address(df_request, df_response):
+	address = df_request.query_result.parameters.get('address')
+	user_id = df_request.query_result.output_contexts.get('wh-client').parameters.get('userId')
+
+	refer_mock.update_address(address, user_id)
+
+@dialogflow.intent('order-question asap')
+def suggest_pantries_available_asap(df_request, df_response):
+	pass
+
+
 @dialogflow.intent('know/suggest-question know')
 def get_available_appointment_for_pantry(df_request, df_response):
 	pantry = df_request.query_result.parameters.get('pantry');
@@ -37,21 +86,21 @@ def get_available_appointment_for_pantry(df_request, df_response):
 	if res == None:
 		df_response.set_fulfillment_text('Sorry, there are no upcoming appointments available for {0}'.format(pantry))
 	else:
-		df_response.set_fulfillment_text('The soonest appointment I have is {0}. Is this okay? (yes, no)'.format(res['date_and_time'].strftime('%B %d at %I:%M %p')))
+		df_response.set_fulfillment_text('The soonest appointment I have is {0}. Is this okay? (yes, no)'.format(res['date_and_time'].strftime('%B %-d at %-I:%M %p')))
 		context_parameters = {'pantry': res['pantry'], 'dateAndTime': res['date_and_time'].isoformat()}
-		df_response.add_output_context('wh-appointment', 1, context_parameters)
+		df_response.add_output_context('wh-appointment', 5, context_parameters)
 
 @dialogflow.intent('single-question accept')
 def confirm_appointment(df_request, df_response):
 	user_id = df_request.query_result.output_contexts.get('wh-client').parameters.get('userId')
 	pantry = df_request.query_result.output_contexts.get('wh-appointment').parameters.get('pantry')
-	appointment_iso_date_time  = df_request.query_result.output_contexts.get('wh-appointment').parameters.get('date_and_time')
+	appointment_iso_date_time  = df_request.query_result.output_contexts.get('wh-appointment').parameters.get('dateAndTime')
 
 	appointment_date_time = dateutil.parser.parse(appointment_iso_date_time)
 
-	success = refer_mock.bookAppointment(user_id, appointment_date_time)
+	result = refer_mock.book_appointment(user_id, pantry, appointment_date_time)
 
-	if success == True:
-		df_response.set_fulfillment_text('')
-	else:
+	if result == None:
 		df_response.set_fulfillment_text('Sorry, I wasnt able to confirm your appointment')
+	else:
+		df_response.set_fulfillment_text('Your appointment at {0} on {1} is confirmed. The address is {2}. {3}'.format(pantry, appointment_date_time.strftime('%B %-d at %-I:%M %p'), result['address'], result['notes']))

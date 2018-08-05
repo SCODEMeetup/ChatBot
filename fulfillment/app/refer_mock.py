@@ -30,10 +30,35 @@ class ReferMock:
 		sql = "UPDATE User SET address=? WHERE id=?"
 		self._insert_update_db(sql, [address, user_id])
 
+	def suggest_pantries_available_asap(self):
+		sql = "SELECT id FROM Pantry"
+		result = self._query_db(sql)
+		pantry_ids = []
+		for row in result:
+			pantry_ids.append(row['id'])
+
+		while len(pantry_ids) > 3:
+			del pantry_ids[randint(0, len(pantry_ids) - 1)]
+
+		sql = "SELECT name FROM Pantry WHERE id IN (%s)" % ','.join('?'*len(pantry_ids))
+		result = self._query_db(sql, pantry_ids)
+
+		appointments = []
+		tomorrow = datetime.now() + timedelta(days=1)
+		for row in result:
+			availableTimeHour = randint(10, 17)
+			appointmentTime = tomorrow.replace(hour=availableTimeHour, minute=0, second=0, microsecond=0)
+			appointments.append({'pantry': row['name'], 'date_and_time': appointmentTime})
+
+		return appointments
+
+	def suggest_pantries_available_wait(self):
+		return self.suggest_pantries_available_asap()
+
 	def get_available_appointment_for_pantry(self, pantry):
 		availableTimeHour = randint(10, 17)
 		tomorrow = datetime.now() + timedelta(days=1)
-		appointmentTime = tomorrow.replace(hour=availableTimeHour, minute=0, second=0)
+		appointmentTime = tomorrow.replace(hour=availableTimeHour, minute=0, second=0, microsecond=0)
 		return {'pantry': pantry, 'date_and_time': appointmentTime}
 
 	def book_appointment(self, user_id, pantry, appointment_date_time):

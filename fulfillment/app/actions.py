@@ -52,7 +52,9 @@ def lookup_user(df_request, df_response):
 				Are those entries correct?'.format(parsed_ssn, parsed_dob.strftime('%B %e, %Y')))
 	else:
 		df_response.set_fulfillment_text('I found {0} {1} at {2} in our system. \
-			Is that you?'.format(res['firstName'], res['lastName'], res['address']))
+			Is that you? (We mean do we have the right profile?  The name may be wrong or \
+			the address may be wrong.  These may be old.  You would still answer yes.  \
+			We’ll give you a chance to change them next.)'.format(res['firstName'], res['lastName'], res['address']))
 		df_response.add_output_context('wh-client', 10, {'userId': res['id']})
 
 @dialogflow.intent('name-question change')

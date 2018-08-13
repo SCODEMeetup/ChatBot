@@ -122,18 +122,6 @@ def confirm_appointment(df_request, df_response):
 	else:
 		df_response.set_fulfillment_text('Your appointment at {0} on {1} is confirmed. The address is {2}. {3}'.format(pantry, appointment_date_time.strftime('%B %-d at %-I:%M %p'), result['address'], result['notes']))
 
-@dialogflow.intent('single-question reject')
-def suggest_pantries_after_reject(df_request, df_response):
-	appointments = refer_mock.suggest_pantries_available_asap()
-	
-	response = build_pantry_option_response(appointments)
-	response = 'Here are some other options: ' + response
-	df_response.set_fulfillment_text(response)
-
-	context_parameters = build_pantry_option_context(appointments)
-	df_response.add_output_context('wh-appointment-options', 5, context_parameters)
-
-
 @dialogflow.intent('suggest-pantry accept')
 def confirm_appointment_from_options(df_request, df_response):
 	user_id = df_request.query_result.output_contexts.get('wh-client').parameters.get('userId')

@@ -166,3 +166,5 @@ def build_pantry_option_context(appointments):
 	context_parameters = {'appointments': []}
 	for appointment in appointments:
 		context_parameters['appointments'].append({'pantry': appointment['pantry'], 'dateAndTime': appointment['date_and_time'].isoformat()})
+
+	return context_parameters

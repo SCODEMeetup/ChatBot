@@ -78,6 +78,10 @@ def change_client_address(df_request, df_response):
 def suggest_pantries_available_asap(df_request, df_response):
 	appointments = refer_mock.suggest_pantries_available_asap()
 
+	if df_request.query_result.output_contexts.get('wh-appointment') is not None:
+		original_appointment_offer = df_request.query_result.output_contexts.get('wh-appointment')
+		appointments.append(get_original_appointment(original_appointment_offer))
+
 	response = build_pantry_option_response(appointments)
 	df_response.set_fulfillment_text(response)
 
@@ -87,6 +91,10 @@ def suggest_pantries_available_asap(df_request, df_response):
 @dialogflow.intent('order-question wait')
 def suggest_pantries_available_wait(df_request, df_response):
 	appointments = refer_mock.suggest_pantries_available_wait()
+
+	if df_request.query_result.output_contexts.get('wh-appointment') is not None:
+		original_appointment_offer = df_request.query_result.output_contexts.get('wh-appointment')
+		appointments.append(get_original_appointment(original_appointment_offer))
 	
 	response = build_pantry_option_response(appointments)
 	df_response.set_fulfillment_text(response)
@@ -128,8 +136,8 @@ def confirm_appointment_from_options(df_request, df_response):
 	appointment_list = df_request.query_result.output_contexts.get('wh-appointment-options').parameters.get('appointments')
 	selected_appointment = int(df_request.query_result.parameters.get('selectedAppointment'))
 
-	if selected_appointment < 1 or selected_appointment > 3:
-		df_response.set_fulfillment_text('You must select a number from 1 to 3')
+	if selected_appointment < 1 or selected_appointment > len(appointment_list):
+		df_response.set_fulfillment_text('You must select a number from 1 to {0}'.format(len(appointment_list)))
 		return
 
 	pantry = appointment_list[selected_appointment - 1]['pantry']
@@ -142,13 +150,19 @@ def confirm_appointment_from_options(df_request, df_response):
 	else:
 		df_response.set_fulfillment_text('Your appointment at {0} on {1} is confirmed. The address is {2}. {3}'.format(pantry, appointment_date_time.strftime('%B %-d at %-I:%M %p'), result['address'], result['notes']))
 
+def get_original_appointment(appointment_context):
+	iso_date_time = appointment_context.parameters.get('dateAndTime')
+	date_time = dateutil.parser.parse(iso_date_time);
+	return {'pantry': appointment_context.parameters.get('pantry'), 'date_and_time': date_time}
 
 def build_pantry_option_response(appointments):
 	appointment_strings = []
-	for appointment in appointments:
-		appointment_strings.append('{0} on {1}'.format(appointment['pantry'], appointment['date_and_time'].strftime('%B %-d at %-I:%M %p')))
+	for x in range(0, len(appointments)):
+		appointment_strings.append('{0}) {1} on {2}'.format(x+1, appointments[x]['pantry'], appointments[x]['date_and_time'].strftime('%B %-d at %-I:%M %p')))
 
-	return '1) {0}, 2) {1}, 3) {2}. Respond with number to confirm one.'.format(appointment_strings[0], appointment_strings[1], appointment_strings[2])
+	option_string = ', '.join(appointment_strings)
+
+	return option_string + '. Respond with number to confirm one. If none of these work, say "transfer" to talk to a live agent M-F 8am-4pm.'
 
 def build_pantry_option_context(appointments):
 	context_parameters = {'appointments': []}

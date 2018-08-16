@@ -35,7 +35,7 @@ def users():
 	return jsonify(users_json)
 
 @dialogflow.intent('get-ssn-dob-service apt')
-def lookup_user(df_request, df_response):
+def lookup_user_for_appointment(df_request, df_response):
 	ssn = df_request.query_result.parameters.get('ssn')
 	dob = df_request.query_result.parameters.get('dob')
 
@@ -45,24 +45,75 @@ def lookup_user(df_request, df_response):
 	# zfill for ssn's starting with a 0
 	parsed_ssn = str(int(ssn)).zfill(4)
 
-	res = refer_mock.search_for_user(parsed_ssn, dob_string)
+	user = refer_mock.search_for_user(parsed_ssn, dob_string)
 
-	if res == None:
+	if user == None:
 		df_response.set_fulfillment_text('I did not find {0} and {1} in the system. \
 				Are those entries correct?'.format(parsed_ssn, parsed_dob.strftime('%B %e, %Y')))
+		df_response.add_output_context('wh-client-not-found', 5, {})
 	else:
 		df_response.set_fulfillment_text('I found {0} {1} at {2} in our system. \
 			Is that you? (We mean do we have the right profile?  The name may be wrong or \
 			the address may be wrong.  These may be old.  You would still answer yes.  \
-			We’ll give you a chance to change them next.)'.format(res['firstName'], res['lastName'], res['address']))
-		df_response.add_output_context('wh-client', 10, {'userId': res['id']})
+			We’ll give you a chance to change them next.)'.format(user['firstName'], user['lastName'], user['address']))
+		df_response.add_output_context('wh-client', 10, {'userId': user['id']})
+
+@dialogflow.intent('get-ssn-dob-service when')
+def lookup_appointment(df_request, df_response):
+	ssn = df_request.query_result.parameters.get('ssn')
+	dob = df_request.query_result.parameters.get('dob')
+
+	parsed_dob = dateutil.parser.parse(dob)
+	dob_string = parsed_dob.strftime('%Y-%m-%d')
+	
+	# zfill for ssn's starting with a 0
+	parsed_ssn = str(int(ssn)).zfill(4)
+
+	user = refer_mock.search_for_user(parsed_ssn, dob_string)
+
+	if user == None:
+		df_response.set_fulfillment_text('I did not find {0} and {1} in the system. \
+				Are those entries correct?'.format(parsed_ssn, parsed_dob.strftime('%B %e, %Y')))
+		df_response.add_output_context('wh-client-not-found', 5, {})
+	else:
+		appointment = refer_mock.search_for_appointment(user['id'])
+
+		if appointment == None:
+			df_response.set_fulfillment_text("You do not have any upcoming appointments.")
+		else:
+			date_and_time = dateutil.parser.parse(appointment['date_and_time'])
+			df_response.set_fulfillment_text("Your pantry referral is {0} at {1}. {2}.".format(date_and_time.strftime('%B %-d at %-I:%M %p'), appointment['pantry'], appointment['notes']))
+
+@dialogflow.intent('get-ssn-dob-service cancel')
+def cancel_appointment(df_request, df_response):
+	ssn = df_request.query_result.parameters.get('ssn')
+	dob = df_request.query_result.parameters.get('dob')
+
+	parsed_dob = dateutil.parser.parse(dob)
+	dob_string = parsed_dob.strftime('%Y-%m-%d')
+	
+	# zfill for ssn's starting with a 0
+	parsed_ssn = str(int(ssn)).zfill(4)
+
+	user = refer_mock.search_for_user(parsed_ssn, dob_string)
+
+	if user == None:
+		df_response.set_fulfillment_text('I did not find {0} and {1} in the system. \
+				Are those entries correct?'.format(parsed_ssn, parsed_dob.strftime('%B %e, %Y')))
+		df_response.add_output_context('wh-client-not-found', 5, {})
+	else:
+		appointment = refer_mock.cancel_appointment(user['id'])
+
+		if appointment == None:
+			df_response.set_fulfillment_text("You do not have any upcoming appointments to cancel.")
+		else:
+			date_and_time = dateutil.parser.parse(appointment['date_and_time'])
+			df_response.set_fulfillment_text("Your pantry referral on {0} at {1} has been cancelled. Type apt to schedule a new pantry referral.".format(date_and_time.strftime('%B %-d at %-I:%M %p'), appointment['pantry']))
 
 @dialogflow.intent('name-question change')
 def change_client_name(df_request, df_response):
 	first_name = df_request.query_result.parameters.get('client').get('firstname')
 	last_name = df_request.query_result.parameters.get('client').get('lastname')
-	print(first_name)
-	print(last_name)
 	user_id = df_request.query_result.output_contexts.get('wh-client').parameters.get('userId')
 
 	refer_mock.update_name(first_name, last_name, user_id)

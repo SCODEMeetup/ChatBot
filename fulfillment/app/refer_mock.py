@@ -20,15 +20,39 @@ class ReferMock:
 		sql = "SELECT firstName, lastName, address, id FROM User WHERE ssn=? AND birthdate=?"
 		return self._query_db(sql, [ssn, birthdate], one=True)
 
+	def search_for_appointment(self, user_id):
+		sql = "SELECT MAX(dateAndTime), Pantry.name FROM Appointment INNER JOIN Pantry ON Appointment.pantryId=Pantry.Id WHERE userId=? and dateAndTime > datetime('now')"
+		result = self._query_db(sql, [user_id], one=True)
+
+		if result == None or result['MAX(dateAndTime)'] == None:
+			return None
+		else:
+			return {'date_and_time': result['MAX(dateAndTime)'],
+					'pantry': result['name'],
+					'notes': result['notes']}
+
+	def cancel_appointment(self, user_id):
+		sql = "SELECT Appointment.id, MAX(dateAndTime), Pantry.name FROM Appointment INNER JOIN Pantry ON Appointment.pantryId=Pantry.Id WHERE userId=? and dateAndTime > datetime('now')"
+		result = self._query_db(sql, [user_id], one=True)
+
+		if result == None or result['MAX(dateAndTime)'] == None:
+			return None
+		else:
+			sql = "DELETE FROM Appointment WHERE id=?"
+			self._insert_update_delete_db(sql, [result['id']])
+
+			return {'date_and_time': result['MAX(dateAndTime)'],
+					'pantry': result['name']}
+
 	def update_name(self, first_name, last_name, user_id):
 		print(first_name)
 		print(last_name)
 		sql = "UPDATE User SET firstName=?, lastName=? WHERE id=?"
-		self._insert_update_db(sql, [first_name, last_name, user_id])
+		self._insert_update_delete_db(sql, [first_name, last_name, user_id])
 
 	def update_address(self, address, user_id):
 		sql = "UPDATE User SET address=? WHERE id=?"
-		self._insert_update_db(sql, [address, user_id])
+		self._insert_update_delete_db(sql, [address, user_id])
 
 	def suggest_pantries_available_asap(self):
 		sql = "SELECT id FROM Pantry"
@@ -64,7 +88,7 @@ class ReferMock:
 	def book_appointment(self, user_id, pantry, appointment_date_time):
 		sql = "INSERT INTO Appointment (userId, pantryId, dateAndTime) VALUES (?, (SELECT id FROM Pantry WHERE Name=?), ?)"
 		try:
-			self._insert_update_db(sql, [user_id, pantry, appointment_date_time]);
+			self._insert_update_delete_db(sql, [user_id, pantry, appointment_date_time]);
 		except sqlite3.Error:
 			return None
 		
@@ -77,7 +101,7 @@ class ReferMock:
 		cursor.close()
 		return (results[0] if results else None) if one else results
 
-	def _insert_update_db(self, query, args=()):
+	def _insert_update_delete_db(self, query, args=()):
 		cursor = self._database.cursor()
 		cursor.execute(query, args)
 		self._database.commit()

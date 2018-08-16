@@ -21,7 +21,7 @@ class ReferMock:
 		return self._query_db(sql, [ssn, birthdate], one=True)
 
 	def search_for_appointment(self, user_id):
-		sql = "SELECT MAX(dateAndTime), Pantry.name FROM Appointment INNER JOIN Pantry ON Appointment.pantryId=Pantry.Id WHERE userId=? and dateAndTime > datetime('now')"
+		sql = "SELECT MAX(dateAndTime), Pantry.name, Pantry.notes FROM Appointment INNER JOIN Pantry ON Appointment.pantryId=Pantry.Id WHERE userId=? and dateAndTime > datetime('now')"
 		result = self._query_db(sql, [user_id], one=True)
 
 		if result == None or result['MAX(dateAndTime)'] == None:
